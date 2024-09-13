@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
 	"uniswaptgbot/config"
 	"uniswaptgbot/erc20"
-
-	"database/sql"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -20,6 +19,22 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	_ "github.com/go-sql-driver/mysql"
 )
+
+func convertBytesToHex(data []byte) string {
+	return hex.EncodeToString(data)
+}
+
+func searchFromDbTokens(arr [][]interface{}, tx *types.Transaction, from common.Address) int {
+	for i, v := range arr {
+		fromStr := from.Hex()
+		inputData := tx.Data()
+		data := convertBytesToHex(inputData)
+		if fromStr == v[1] && strings.Contains(data, v[2].(string)) {
+			return i
+		}
+	}
+	return -1 // Value not found
+}
 
 func main() {
 	nodeUrl := config.Config("ETHEREUM_NODE_URL")
@@ -41,7 +56,26 @@ func main() {
 	if err != nil {
 		fmt.Printf("Failed to subscribe to new head: %v\n", err)
 	}
+	const minimumValue = 200000000000000000
+	rows, err := sql.Query("SELECT id, deployer, contract_addr from token_info ")
+	if err != nil {
+		fmt.Printf("Error reading database")
+	}
+	defer rows.Close()
 
+	tokenList := [][]interface{}{}
+
+	// fmt.Printf("Type: %T\n", rows)
+	for rows.Next() {
+		var deployer, contract_addr string
+		var id int
+		rows.Scan(&id, &deployer, &contract_addr)
+		// fmt.Printf("id: %v deployer %v contract %v\n", id, deployer, contract_addr)
+		tokenList = append(tokenList, []interface{}{id, deployer, contract_addr})
+	}
+	// var universalRouter = common.HexToAddress("0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B")
+	var universalRouter = common.HexToAddress("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
+	// 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
 	//monitor new blocks
 	for {
 		select {
@@ -53,14 +87,16 @@ func main() {
 				fmt.Printf("Failed to retrieve block %v ", err)
 				break
 			}
+
 			// Process each transaction in the block
 			for _, tx := range block.Transactions() {
+				deployer, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
+				if err != nil {
+					fmt.Printf("Failed to retrieve sender: %v\n", err)
+					continue
+				}
 				if tx.To() == nil {
-					deployer, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
-					if err != nil {
-						fmt.Printf("Failed to retrieve sender: %v\n", err)
-						continue
-					}
+
 					contractAddr := crypto.CreateAddress(deployer, tx.Nonce())
 					deployer_balance, err := client.BalanceAt(context.Background(), deployer, nil)
 					if err != nil {
@@ -85,14 +121,37 @@ func main() {
 
 						fmt.Printf("Token Name: %s", name)
 						fmt.Printf("Total Supply: %s", totSupply.String())
-						sql.Query("INSERT INTO ethereum (name, total_supply, symbol, decimals, deployer, deployer_balance, funded_by, fund_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-							name, totSupply.String(), symbol, decimals, deployer.Hex(), deployer_balance.String(), funded_by, fund_amount)
+						_, err1 := sql.Query(`INSERT INTO token_info (name, total_supply, symbol, decimals, deployer, deployer_balance, funded_by,
+							fund_amount, contract_addr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+							name, totSupply.String(), symbol, decimals, deployer.Hex(), deployer_balance.String(),
+							funded_by, fund_amount, contractAddr.Hex())
+
+						tokenList = append(tokenList, []interface{}{len(tokenList), deployer.Hex(), contractAddr.Hex()})
+						if err1 != nil {
+							fmt.Printf("ERR %v\n", err)
+						}
+					}
+				}
+				// -----Check Buy transaction of deployer -----------
+				// fmt.Printf("Tx To: %v router %v\n", tx.To(), universalRouter)
+				// if tx.To() != nil {
+				// fmt.Printf("compare value: %v\n", tx.To().Cmp(universalRouter) == 0)
+				// }
+				// fmt.Printf("universalRouter:%v\n", universalRouter)
+				// fmt.Printf("Tx Value %v\n", tx.Value())
+				if tx.To() != nil && tx.To().Cmp(universalRouter) == 0 && tx.Value().Cmp(big.NewInt(minimumValue)) > 0 {
+					fmt.Printf("I am In\n")
+					// Check if the input data contains the token address (tk_addr)
+					ind := searchFromDbTokens(tokenList, tx, deployer)
+					if ind != -1 {
+						fmt.Printf("Transaction %s matches criteria\n", tx.Hash())
 					}
 				}
 			}
 		}
 	}
 }
+
 func getFundInfo(creatorAddr common.Address, client *ethclient.Client) (string, string) {
 	header, err := client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
