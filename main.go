@@ -29,7 +29,16 @@ func searchFromDbTokens(arr [][]interface{}, tx *types.Transaction, from common.
 		fromStr := from.Hex()
 		inputData := tx.Data()
 		data := convertBytesToHex(inputData)
-		if fromStr == v[1] && strings.Contains(data, v[2].(string)) {
+		// fmt.Printf("Data: %v\n", data)
+		fmt.Printf("From: %v ", fromStr)
+		fmt.Printf("From___11: %v ", v[1])
+		addrStr := strings.ToLower(strings.TrimPrefix(v[2].(string), "0x"))
+		// fmt.Printf("token Addr: %v\n", addrStr)
+		fmt.Printf("v1: %v ", strings.EqualFold(fromStr, v[1].(string)))
+		fmt.Printf("v2: %v ", strings.Contains(data, addrStr))
+		fmt.Printf("v3: %v %v\n", fromStr, v[1])
+		// fmt.Printf("v4: %v ", )
+		if strings.EqualFold(fromStr, v[1].(string)) && strings.Contains(data, addrStr) {
 			return i
 		}
 	}
@@ -37,6 +46,7 @@ func searchFromDbTokens(arr [][]interface{}, tx *types.Transaction, from common.
 }
 
 func main() {
+
 	nodeUrl := config.Config("ETHEREUM_NODE_URL")
 	dbUrl := config.Config("DB_URL")
 	fmt.Println(nodeUrl)
@@ -51,6 +61,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	headers := make(chan *types.Header)
 	sub, err := client.SubscribeNewHead(context.Background(), headers)
 	if err != nil {
@@ -73,10 +84,7 @@ func main() {
 		// fmt.Printf("id: %v deployer %v contract %v\n", id, deployer, contract_addr)
 		tokenList = append(tokenList, []interface{}{id, deployer, contract_addr})
 	}
-	// var universalRouter = common.HexToAddress("0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B")
 	var universalRouter = common.HexToAddress("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
-	// 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
-	//monitor new blocks
 	for {
 		select {
 		case err := <-sub.Err():
@@ -133,14 +141,7 @@ func main() {
 					}
 				}
 				// -----Check Buy transaction of deployer -----------
-				// fmt.Printf("Tx To: %v router %v\n", tx.To(), universalRouter)
-				// if tx.To() != nil {
-				// fmt.Printf("compare value: %v\n", tx.To().Cmp(universalRouter) == 0)
-				// }
-				// fmt.Printf("universalRouter:%v\n", universalRouter)
-				// fmt.Printf("Tx Value %v\n", tx.Value())
 				if tx.To() != nil && tx.To().Cmp(universalRouter) == 0 && tx.Value().Cmp(big.NewInt(minimumValue)) > 0 {
-					fmt.Printf("I am In\n")
 					// Check if the input data contains the token address (tk_addr)
 					ind := searchFromDbTokens(tokenList, tx, deployer)
 					if ind != -1 {
