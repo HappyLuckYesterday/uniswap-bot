@@ -114,20 +114,20 @@ func main() {
 					bERC20 := isERC20(contractAddr, client)
 					if bERC20 {
 						// Get token information
-						fmt.Println("New Token Deployed!")
-						fmt.Printf("Deployer Address: %s\n", deployer.Hex())
-						fmt.Printf("Deployer Balance: %s\n", deployer_balance.String())
-						fmt.Printf("Contract Address: %s\n", contractAddr.Hex())
+						// fmt.Println("New Token Deployed!")
+						// fmt.Printf("Deployer Address: %s\n", deployer.Hex())
+						// fmt.Printf("Deployer Balance: %s\n", deployer_balance.String())
+						// fmt.Printf("Contract Address: %s\n", contractAddr.Hex())
 						name, totSupply, decimals, symbol, err := getTokenInfo(contractAddr, client)
 						if err != nil {
 							fmt.Printf("Error getting token info: %s\n", err)
 							continue
 						}
 						funded_by, fund_amount := getFundInfo(deployer, client)
-						fmt.Printf("funded_by: %s fund_amount: %s", funded_by, fund_amount)
+						// fmt.Printf("funded_by: %s fund_amount: %s", funded_by, fund_amount)
 
-						fmt.Printf("Token Name: %s", name)
-						fmt.Printf("Total Supply: %s", totSupply.String())
+						fmt.Printf("New Token Name: %s \n", name)
+						// fmt.Printf("Total Supply: %s", totSupply.String())
 						_, err1 := sql.Query(`INSERT INTO token_info (name, total_supply, symbol, decimals, deployer, deployer_balance, funded_by,
 							fund_amount, contract_addr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 							name, totSupply.String(), symbol, decimals, deployer.Hex(), deployer_balance.String(),
