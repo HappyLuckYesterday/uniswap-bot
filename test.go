@@ -12,7 +12,7 @@ import (
 )
 
 func test(client *ethclient.Client, sql *sql.DB) {
-	blockNumber := big.NewInt(20745417)
+	blockNumber := big.NewInt(20793920)
 	block, err := client.BlockByNumber(context.Background(), blockNumber)
 	if err != nil {
 		fmt.Printf("Failed to retrieve block %v ", err)
@@ -47,7 +47,7 @@ func test(client *ethclient.Client, sql *sql.DB) {
 			// Check if the input data contains the token address (tk_addr)
 			ind := searchFromDbTokens(tokenList, tx, deployer)
 			if ind != -1 {
-				fmt.Printf("Transaction %s matches criteria\n", tx.Hash())
+
 			}
 		}
 	}

@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"uniswaptgbot/config"
 )
@@ -26,9 +25,8 @@ func sendMessage(botToken, chatID, text string) {
 	defer resp.Body.Close()
 }
 
-func postDeployerTrans() {
+func postDeployerTrans(txt string) {
 	chatID := config.Config("TG_CHANNEL_ID")
 	botToken := config.Config("TELEGRAM_BOT_TOKEN")
-	fmt.Printf("%v %v \n", chatID, botToken)
-	sendMessage(botToken, chatID, "Deployer Transaction")
+	sendMessage(botToken, chatID, txt)
 }

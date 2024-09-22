@@ -30,13 +30,13 @@ func searchFromDbTokens(arr [][]interface{}, tx *types.Transaction, from common.
 		inputData := tx.Data()
 		data := convertBytesToHex(inputData)
 		// fmt.Printf("Data: %v\n", data)
-		fmt.Printf("From: %v ", fromStr)
-		fmt.Printf("From___11: %v ", v[1])
+		// fmt.Printf("From: %v ", fromStr)
+		// fmt.Printf("From___11: %v ", v[1])
 		addrStr := strings.ToLower(strings.TrimPrefix(v[2].(string), "0x"))
 		// fmt.Printf("token Addr: %v\n", addrStr)
-		fmt.Printf("v1: %v ", strings.EqualFold(fromStr, v[1].(string)))
-		fmt.Printf("v2: %v ", strings.Contains(data, addrStr))
-		fmt.Printf("v3: %v %v\n", fromStr, v[1])
+		// fmt.Printf("v1: %v ", strings.EqualFold(fromStr, v[1].(string)))
+		// fmt.Printf("v2: %v ", strings.Contains(data, addrStr))
+		// fmt.Printf("v3: %v %v\n", fromStr, v[1])
 		// fmt.Printf("v4: %v ", )
 		if strings.EqualFold(fromStr, v[1].(string)) && strings.Contains(data, addrStr) {
 			return i
@@ -46,11 +46,6 @@ func searchFromDbTokens(arr [][]interface{}, tx *types.Transaction, from common.
 }
 
 func main() {
-	postDeployerTrans()
-}
-
-func main1() {
-
 	nodeUrl := config.Config("ETHEREUM_NODE_URL")
 	dbUrl := config.Config("DB_URL")
 	fmt.Println(nodeUrl)
@@ -149,7 +144,8 @@ func main1() {
 					// Check if the input data contains the token address (tk_addr)
 					ind := searchFromDbTokens(tokenList, tx, deployer)
 					if ind != -1 {
-						fmt.Printf("Transaction %s matches criteria\n", tx.Hash())
+						text := fmt.Sprintf("Tx Hash:  %s\n Deployer: %v\n Token Address: %v\n", tx.Hash(), tokenList[ind][1], tokenList[ind][2])
+						postDeployerTrans(text)
 					}
 				}
 			}
