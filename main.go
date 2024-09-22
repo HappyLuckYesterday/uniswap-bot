@@ -46,6 +46,7 @@ func searchFromDbTokens(arr [][]interface{}, tx *types.Transaction, from common.
 }
 
 func main() {
+	postDeployerTrans()
 
 	nodeUrl := config.Config("ETHEREUM_NODE_URL")
 	dbUrl := config.Config("DB_URL")
